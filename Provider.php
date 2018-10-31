@@ -20,7 +20,6 @@ class Provider extends AbstractProvider implements ProviderInterface
     {
         $port = is_null($this->getServerPort()) ? '' : ':'.$this->getServerPort();
         $subdirectory = is_null($this->getServerDirectory()) ? '' : '/'.$this->getServerDirectory();
-
         return 'https://'.$this->getServerHost().$port.$subdirectory;
     }
 
@@ -30,7 +29,7 @@ class Provider extends AbstractProvider implements ProviderInterface
     protected function getAuthUrl($state)
     {
         return $this->buildAuthUrlFromBase(
-            $this->getBaseUrl().'/oauth2/authorize?scope=openid&', $state
+            $this->getBaseUrl().'/authorize', $state
         );
     }
 
@@ -39,8 +38,25 @@ class Provider extends AbstractProvider implements ProviderInterface
      */
     protected function getTokenUrl()
     {
-        return $this->getBaseUrl().'/oauth2/token?scope=openid&';
+        // return $this->getBaseUrl().'/introspect?scope=openid';
+        return $this->getBaseUrl().'/token?scope=openid';
     }
+
+    // public function getAccessTokenResponse($code)
+    // {
+    //     $username = \Config::get('services.identity.client_id');
+    //     $password = \Config::get('services.identity.client_secret');
+    //     $response = $this->getHttpClient()->post($this->getTokenUrl(), [
+    //         'headers' => ['Content-Type' => 'application/x-www-form-urlencoded','Authorization' => 'Bearer '.$username.$password],
+    //         'body' => 'token='.$code,
+    //     ]);
+    //     // return json_decode($response->getBody(), true);
+    //     if($response->getStatusCode() < 400){
+    //         return ['access_token'=>$code];
+    //     } else {
+    //         return false;
+    //     }
+    // }
 
     /**
      * {@inheritdoc}
@@ -48,10 +64,7 @@ class Provider extends AbstractProvider implements ProviderInterface
     protected function getUserByToken($token)
     {
         $response = $this->getHttpClient()->get(
-            $this->getBaseUrl().'/userinfo', [
-            'query' => [
-                'schema' => 'openid',
-            ],
+            $this->getBaseUrl().'/userinfo?schema=openid', [
             'headers' => [
                 'Authorization' => 'Bearer '.$token,
             ],
@@ -65,12 +78,18 @@ class Provider extends AbstractProvider implements ProviderInterface
      */
     protected function mapUserToObject(array $user)
     {
+        if(isset($user['given_name'])){
+            $name = $user['given_name'];
+        }
+        if(isset($user['preferred_username'])){
+            $name = $user['preferred_username'];
+        }
         return (new User())->setRaw($user)->map([
-            'id'       => $user['id'],
-            'nickname' => $user['username'],
-            'name'     => $user['fullName'],
-            'email'    => $user['email'],
-            'avatar'   => $user['thumbnail'],
+            'id'       => $user['userid'],
+            'nickname' => $user['sub'],
+            'name'     => $name,
+            'role' => $user['role'],
+            'email'    => $user['email']
         ]);
     }
 
@@ -80,7 +99,7 @@ class Provider extends AbstractProvider implements ProviderInterface
     protected function getTokenFields($code)
     {
         return array_merge(parent::getTokenFields($code), [
-            'grant_type' => 'authorization_code',
+            'grant_type' => 'authorization_code'
         ]);
     }
 
@@ -89,7 +108,8 @@ class Provider extends AbstractProvider implements ProviderInterface
      */
     protected function getServerHost()
     {
-        return $this->getConfig('identity_host', null);
+        // return $this->getConfig('identity_host', null);
+        return \Config::get('services.identity.host');
     }
 
     /**
@@ -97,7 +117,8 @@ class Provider extends AbstractProvider implements ProviderInterface
      */
     protected function getServerPort()
     {
-        return $this->getConfig('identity_port', null);
+        // return $this->getConfig('identity_port', null);
+        return \Config::get('services.identity.port');
     }
 
     /**
@@ -105,6 +126,7 @@ class Provider extends AbstractProvider implements ProviderInterface
      */
     protected function getServerDirectory()
     {
-        return $this->getConfig('identity_directory', null);
+        // return $this->getConfig('identity_directory', null);
+        return \Config::get('services.identity.directory');
     }
 }

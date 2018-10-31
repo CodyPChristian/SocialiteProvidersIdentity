@@ -1,7 +1,7 @@
 {
   "name": "codypchristian/socialiteprovidersidentity",
   "description": "Identity WS02 OAuth2 Provider for Laravel Socialite",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "MIT",
   "authors": [{
       "name": "Cody Christian",
